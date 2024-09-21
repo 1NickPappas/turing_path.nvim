@@ -2,8 +2,8 @@
 
 local M = {}
 
--- Get the path to the plugin root dynamically
-local plugin_path = vim.fn.fnamemodify(debug.getinfo(1).source, ":p:h:h:h")
+-- Get the path to the plugin root dynamically, removing the leading "@" or "file://"
+local plugin_path = vim.fn.fnamemodify(debug.getinfo(1).source:sub(2), ":p:h:h:h")
 
 -- Define a table that maps each game to its corresponding file path and cursor position
 local game_config = {
