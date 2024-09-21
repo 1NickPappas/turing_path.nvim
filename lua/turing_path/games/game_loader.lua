@@ -3,7 +3,8 @@
 local M = {}
 
 -- Get the path to the plugin root dynamically
-local plugin_path = vim.fn.fnamemodify(debug.getinfo(1).source:sub(2), ":p:h:h")
+local plugin_name = "turing_path.nvim" -- Replace with your actual plugin name if different
+local plugin_path = vim.fn.stdpath("data") .. "/lazy/" .. plugin_name
 
 -- Define a table that maps each game to its corresponding file path and cursor position
 local game_config = {
