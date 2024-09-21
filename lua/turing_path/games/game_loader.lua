@@ -2,12 +2,15 @@
 
 local M = {}
 
+-- Get the path to the plugin root dynamically
+local plugin_path = vim.fn.fnamemodify(debug.getinfo(1).source, ":p:h:h:h")
+
 -- Define a table that maps each game to its corresponding file path and cursor position
 local game_config = {
-	[0] = { file = "lua/turing_path/games/example_game.ts", cursor = { 5, 10 } },
-	[1] = { file = "lua/turing_path/games/game1.ts", cursor = { 8, 45 } },
-	[2] = { file = "lua/turing_path/games/game2.ts", cursor = { 10, 5 } },
-	[3] = { file = "lua/turing_path/games/game3.ts", cursor = { 3, 0 } },
+	[0] = { file = plugin_path .. "/games/example_game.ts", cursor = { 5, 10 } },
+	[1] = { file = plugin_path .. "/games/game1.ts", cursor = { 8, 45 } },
+	[2] = { file = plugin_path .. "/games/game2.ts", cursor = { 10, 5 } },
+	[3] = { file = plugin_path .. "/games/game3.ts", cursor = { 3, 0 } },
 }
 
 -- Function to start the game and manage the game flow
@@ -19,7 +22,7 @@ function M.open_game(game_number)
 	end
 
 	-- Define the path to your game file
-	local tutor_file = vim.fn.stdpath("config") .. "/" .. game.file
+	local tutor_file = game.file
 
 	if vim.fn.filereadable(tutor_file) == 1 then
 		-- Open the game file in a new tab
