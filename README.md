@@ -7,7 +7,7 @@ This plugin provides a simple command `:TuringPath` to test the functionality.
 ```lua
 require('lazy').setup({
     {
-        "your-username/turing_path",  -- Replace with your GitHub repo URL
+        "1NickPappas/turing_path",  -- Replace with your GitHub repo URL
         lazy = true,  -- Lazy load the plugin
         cmd = "TuringPath",  -- Load plugin when :TuringPath is called
         config = function()
