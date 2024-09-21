@@ -104,20 +104,41 @@ function M.start_game(buf, cursor_position)
 			-- Clear highlights and reset the game after 3 seconds
 			vim.defer_fn(function()
 				utils.clear_highlights(buf)
-				vim.cmd("edit!") -- Reset the buffer
+				vim.cmd("silent! undo") -- Undo all changes to reset the file to its original state
 
-				-- Place cursor at the predefined start position for the game
-				vim.api.nvim_win_set_cursor(0, cursor_position)
-
-				-- Add a delay before restarting the game to allow LSP diagnostics to refresh
+				-- Wait for diagnostics to update after undoing
 				vim.defer_fn(function()
-					utils.highlight_letter_G(buf)
+					local diagnostics_updated = false
 
-					-- Add an additional 1-second delay before checking diagnostics again
-					vim.defer_fn(function()
-						M.start_game(buf, cursor_position)
-					end, 1000) -- 1 second delay before restarting the game
-				end, 1000) -- Wait 1 second after buffer reset before continuing
+					-- Function to wait until diagnostics are updated
+					local function wait_for_diagnostics()
+						local new_diagnostics = vim.diagnostic.get(buf)
+						if #new_diagnostics > 0 then
+							diagnostics_updated = true
+						end
+					end
+
+					-- Set an autocmd to wait for diagnostic update
+					vim.api.nvim_create_autocmd("DiagnosticChanged", {
+						buffer = buf,
+						callback = function()
+							if diagnostics_updated then
+								-- Once diagnostics are updated, reset the game
+								vim.api.nvim_win_set_cursor(0, cursor_position)
+
+								-- Add a small delay to allow LSP diagnostics to refresh fully
+								vim.defer_fn(function()
+									utils.highlight_letter_G(buf)
+									-- Now restart the game
+									M.start_game(buf, cursor_position)
+								end, 500) -- Wait 500ms after diagnostics before restarting
+							end
+						end,
+					})
+
+					-- Start checking diagnostics after 1 second
+					vim.defer_fn(wait_for_diagnostics, 1000)
+				end, 1000) -- Wait 1 second after undoing changes
 			end, 3000) -- 3-second delay before resetting the game
 		end
 	end
