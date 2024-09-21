@@ -104,13 +104,21 @@ function M.start_game(buf, cursor_position)
 			-- Clear highlights and reset the game after 3 seconds
 			vim.defer_fn(function()
 				utils.clear_highlights(buf)
-				vim.cmd("edit!")
+				vim.cmd("edit!") -- Reset the buffer
+
+				-- Place cursor at the predefined start position for the game
 				vim.api.nvim_win_set_cursor(0, cursor_position)
+
+				-- Add a delay before restarting the game to allow LSP diagnostics to refresh
 				vim.defer_fn(function()
 					utils.highlight_letter_G(buf)
-					M.start_game(buf, cursor_position)
-				end, 1000)
-			end, 3000)
+
+					-- Add an additional 1-second delay before checking diagnostics again
+					vim.defer_fn(function()
+						M.start_game(buf, cursor_position)
+					end, 1000) -- 1 second delay before restarting the game
+				end, 1000) -- Wait 1 second after buffer reset before continuing
+			end, 3000) -- 3-second delay before resetting the game
 		end
 	end
 
