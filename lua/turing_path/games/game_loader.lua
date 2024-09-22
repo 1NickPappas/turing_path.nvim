@@ -10,7 +10,7 @@ local plugin_path = vim.fn.stdpath("data") .. "/lazy/" .. plugin_name
 local game_config = {
 	[0] = { file = plugin_path .. "/games/example_game.ts", cursor = { 5, 10 } },
 	[1] = { file = plugin_path .. "/games/game1.ts", cursor = { 6, 45 } },
-	[2] = { file = plugin_path .. "/games/game2.ts", cursor = { 10, 5 } },
+	[2] = { file = plugin_path .. "/games/game2.ts", cursor = { 7, 0 } },
 	[3] = { file = plugin_path .. "/games/game3.ts", cursor = { 7, 0 } },
 }
 
