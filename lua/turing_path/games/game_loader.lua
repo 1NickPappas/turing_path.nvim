@@ -1,5 +1,7 @@
 -- lua/turing_path/games/game_loader.lua
 
+local utils = require("turing_path.utils")
+
 local M = {}
 
 -- Get the path to the plugin root dynamically
@@ -16,10 +18,11 @@ local game_config = {
 
 -- Main function to start the Turing Path game
 function M.run()
+	-- First, display the ASCII art window
 	utils.display_start_window(function()
-		-- After the start window closes, let the user select the mode and game
+		-- After closing the start window, select mode and game
 		utils.select_mode_and_game(function(mode, game_number)
-			-- Here you can handle mode if necessary (e.g., adjust difficulty settings)
+			-- Here you can handle the mode (e.g., apply difficulty logic)
 			vim.notify("Starting game in " .. mode .. " mode.")
 
 			-- Proceed to open the selected game
@@ -28,7 +31,7 @@ function M.run()
 	end)
 end
 
--- Function to start the game and manage the game flow
+-- Function to open the selected game and manage the game flow
 function M.open_game(game_number)
 	local game = game_config[game_number]
 	if not game then
@@ -52,122 +55,11 @@ function M.open_game(game_number)
 		-- Highlight all "G" in the buffer with a red background
 		require("turing_path.utils").highlight_letter_G(buf)
 
-		-- Function to disable mouse events and arrow keys
-		local function disable_controls()
-			-- Disable mouse events
-			local mouse_events = {
-				"<LeftMouse>",
-				"<RightMouse>",
-				"<MiddleMouse>",
-				"<2-LeftMouse>",
-				"<2-RightMouse>",
-				"<2-MiddleMouse>",
-				"<3-LeftMouse>",
-				"<3-RightMouse>",
-				"<3-MiddleMouse>",
-				"<ScrollWheelUp>",
-				"<ScrollWheelDown>",
-			}
-			for _, event in ipairs(mouse_events) do
-				vim.api.nvim_buf_set_keymap(buf, "", event, "<Nop>", { noremap = true, silent = true })
-			end
-
-			-- Disable arrow keys in normal and visual modes
-			local opts = { noremap = true, silent = true }
-			local function disable_key(mode, key)
-				vim.api.nvim_buf_set_keymap(buf, mode, key, "<Nop>", opts)
-			end
-			for _, mode in ipairs({ "n", "v" }) do
-				for _, key in ipairs({ "<Up>", "<Down>", "<Left>", "<Right>" }) do
-					disable_key(mode, key)
-				end
-			end
-		end
-
-		disable_controls()
-
-		-- Start the game logic (diagnostics, timer, etc.)
+		-- Proceed with other game logic (e.g., starting the game, disabling keys)
 		M.start_game(buf, game.cursor)
 	else
 		vim.notify("Game file not found: " .. tutor_file, vim.log.levels.ERROR)
 	end
-end
-
--- Function to start the timer, check diagnostics, and restart the game
-function M.start_game(buf, cursor_position)
-	local start_time = vim.loop.hrtime()
-
-	-- Function to check diagnostics and handle game completion
-	local function check_diagnostics()
-		local diagnostics = vim.diagnostic.get(buf)
-		if #diagnostics == 0 then
-			-- Stop the timer
-			local end_time = vim.loop.hrtime()
-			local elapsed_ns = end_time - start_time
-			local elapsed_sec = elapsed_ns / 1e9
-
-			local minutes = math.floor(elapsed_sec / 60)
-			local seconds = elapsed_sec % 60
-			local time_msg =
-				string.format("🎉 You fixed all errors in %d minutes and %.2f seconds!", minutes, seconds)
-
-			-- Display the message in a popup
-			local utils = require("turing_path.utils")
-			utils.show_popup(time_msg)
-
-			-- Clear highlights and reset the game after 3 seconds
-			vim.defer_fn(function()
-				utils.clear_highlights(buf)
-
-				-- Undo all changes
-				vim.cmd("edit!") -- Reloads the buffer from disk, discarding unsaved changes
-				-- Wait for diagnostics to update after undoing
-				vim.defer_fn(function()
-					local diagnostics_updated = false
-
-					-- Function to wait until diagnostics are updated
-					local function wait_for_diagnostics()
-						local new_diagnostics = vim.diagnostic.get(buf)
-						if #new_diagnostics > 0 then
-							diagnostics_updated = true
-						end
-					end
-
-					-- Set an autocmd to wait for diagnostic update
-					vim.api.nvim_create_autocmd("DiagnosticChanged", {
-						buffer = buf,
-						callback = function()
-							if diagnostics_updated then
-								-- Add a small delay to allow LSP diagnostics to refresh fully
-								vim.defer_fn(function()
-									-- Now restart the game
-
-									vim.defer_fn(function()
-										-- Reapply the "G" highlights after restarting the game
-										utils.highlight_letter_G(buf)
-										M.start_game(buf, cursor_position)
-									end, 1000) -- Wait 1 second before restarting
-								end, 1000) -- Wait 500ms after diagnostics before restarting
-							end
-						end,
-					})
-
-					-- Start checking diagnostics after 1 second
-					vim.defer_fn(wait_for_diagnostics, 1000)
-				end, 1000) -- Wait 1 second after undoing changes
-			end, 3000) -- 3-second delay before resetting the game
-		end
-	end
-
-	-- Create autocmd for diagnostics check
-	local diag_group = vim.api.nvim_create_augroup("TuringPathDiagnostics", { clear = true })
-	vim.api.nvim_create_autocmd("DiagnosticChanged", {
-		group = diag_group,
-		buffer = buf,
-		callback = function()
-			vim.defer_fn(check_diagnostics, 100)
-		end,
-	})
 end
 
 return M

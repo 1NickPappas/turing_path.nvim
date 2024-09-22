@@ -58,8 +58,8 @@ function M.show_popup(message)
 	end, 3000)
 end
 
--- Function to display the start window with Turing machine ASCII art and mode selection
-M.display_start_window = function(start_callback)
+-- Function to display the start window with Turing machine ASCII art
+M.display_start_window = function(on_close)
 	local ascii_art = {
 		"  ____________________________ ",
 		" |  _______                   |",
@@ -71,30 +71,22 @@ M.display_start_window = function(start_callback)
 		"       | |      | |      | |    ",
 		"      [ ]      [ ]      [ ]     ",
 		"",
-		" Select Mode and Game: ",
-		"  1. Easy",
-		"  2. Medium",
-		"  3. Hard",
-		"",
-		"  Game 0: Example",
-		"  Game 1: Game 1",
-		"  Game 2: Game 2",
-		"  Game 3: Game 3",
-		"",
-		" Press 'q' to quit or 'Enter' to select mode and game.",
+		" Press 'Enter' to start selecting a mode and game",
+		" Press 'q' to quit",
 	}
 
 	local buf = vim.api.nvim_create_buf(false, true)
 	vim.api.nvim_buf_set_lines(buf, 0, -1, false, ascii_art)
 
-	-- Highlight title or specific lines if desired
-	vim.api.nvim_buf_add_highlight(buf, -1, "Title", 3, 0, -1) -- Highlight the 'Turing Machine'
+	-- Highlight the title or specific lines if desired
+	vim.api.nvim_buf_add_highlight(buf, -1, "Title", 3, 0, -1) -- Highlight 'Turing Machine'
 
 	local width = 60
 	local height = #ascii_art
 	local col = math.floor((vim.o.columns - width) / 2)
 	local row = math.floor((vim.o.lines - height) / 2)
 
+	-- Create a floating window with the ASCII art
 	local win_id = vim.api.nvim_open_win(buf, true, {
 		relative = "editor",
 		width = width,
@@ -105,20 +97,24 @@ M.display_start_window = function(start_callback)
 		border = "rounded",
 	})
 
-	-- Set up key mappings for quitting and starting the game
+	-- Set up key mappings for quitting and closing the window
 	vim.api.nvim_buf_set_keymap(buf, "n", "q", ":q<CR>", { noremap = true, silent = true })
+
+	-- Map "Enter" to close the window and trigger mode/game selection
 	vim.api.nvim_buf_set_keymap(buf, "n", "<CR>", "", {
 		noremap = true,
 		silent = true,
 		callback = function()
-			vim.api.nvim_win_close(win_id, true) -- Close the window
-			start_callback() -- Proceed to the game setup
+			-- Close the window
+			vim.api.nvim_win_close(win_id, true)
+			-- Call the on_close callback to continue with the mode and game selection
+			on_close()
 		end,
 	})
 end
 
--- Function to select mode and game
-M.select_mode_and_game = function(callback)
+-- Function to select mode and game after closing the ASCII art window
+M.select_mode_and_game = function(on_select)
 	-- Modes to select from
 	local modes = { "Easy", "Medium", "Hard" }
 	local games = { "Game 0", "Game 1", "Game 2", "Game 3" }
@@ -140,8 +136,8 @@ M.select_mode_and_game = function(callback)
 			-- Extract game number from the string (e.g., "Game 0" -> 0)
 			local game_number = tonumber(selected_game:match("%d"))
 
-			-- Call the callback with the selected mode and game number
-			callback(selected_mode, game_number)
+			-- Call the on_select callback with the selected mode and game number
+			on_select(selected_mode, game_number)
 		end)
 	end)
 end
