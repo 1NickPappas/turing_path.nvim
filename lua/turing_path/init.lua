@@ -21,15 +21,15 @@ function M.run()
 	local screen_width = vim.o.columns
 	local screen_height = vim.o.lines
 
-	-- Set the window size to 60% of the screen (square window)
-	local width = math.floor(screen_width * 0.6)
+	-- Set the window size to 60% of the screen and make it a bit wider
+	local width = math.floor(screen_width * 0.7) -- Increase width to 70% of screen
 	local height = math.floor(screen_height * 0.6)
 
-	-- Ensure the window remains square by using the smaller dimension
+	-- Ensure the window remains square-like by slightly adjusting the smaller dimension
 	if width > height then
-		width = height
-	else
 		height = width
+	else
+		width = height
 	end
 
 	-- Calculate the position (center the window)
@@ -52,23 +52,21 @@ function M.run()
 		col = col,
 		row = row,
 		style = "minimal",
-		border = "rounded", -- Rounded border for modern look
+		border = "rounded", -- Rounded border for a modern look
 	})
 
-	-- Instructions for user
-	vim.api.nvim_buf_set_lines(buf, #ascii_art, #ascii_art, false, { "Select Game (0-3): " })
-	vim.api.nvim_buf_add_highlight(buf, -1, "Comment", #ascii_art, 0, -1) -- Highlight instructions
+	-- Display game selection prompt in the same window
+	vim.api.nvim_buf_set_lines(buf, #ascii_art + 1, #ascii_art + 1, false, { "Select Game (0-3): " })
+	vim.api.nvim_buf_add_highlight(buf, -1, "Comment", #ascii_art + 1, 0, -1) -- Highlight the input prompt
 
-	-- Keyboard Navigation: Allow ESC to close the window
-	vim.api.nvim_buf_set_keymap(
-		buf,
-		"n",
-		"<Esc>",
-		"<cmd>lua vim.api.nvim_win_close(" .. win_id .. ", true)<CR>",
-		{ noremap = true, silent = true }
-	)
+	-- Get user input within the floating window (not separate)
+	vim.cmd("augroup GameSelectionInput")
+	vim.cmd("autocmd!")
+	vim.cmd("autocmd WinClosed " .. win_id .. " stopinsert")
 
-	-- Input for game selection
+	vim.api.nvim_input("i") -- Automatically enter insert mode for input
+	vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, true, true), "n", false)
+
 	vim.ui.input({ prompt = "Select Game (0-3): " }, function(input)
 		local game_number = tonumber(input)
 		if game_number and game_number >= 0 and game_number <= 3 then
@@ -79,6 +77,8 @@ function M.run()
 			M.run() -- Restart the game selector if invalid input
 		end
 	end)
+
+	vim.cmd("augroup END") -- Close input once user presses ESC or enters a value
 end
 
 return M
