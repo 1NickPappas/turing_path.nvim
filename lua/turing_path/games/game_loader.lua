@@ -83,6 +83,13 @@ end
 function M.start_game(buf, cursor_position)
 	local start_time = vim.loop.hrtime()
 
+	-- Set the cursor position inside start_game
+	vim.defer_fn(function()
+		local win = vim.api.nvim_get_current_win()
+		-- Set the cursor to the provided position (line and column)
+		vim.api.nvim_win_set_cursor(win, cursor_position)
+	end, 100) -- Add a small delay to ensure the file is fully loaded
+
 	-- Function to check diagnostics and handle game completion
 	local function check_diagnostics()
 		local diagnostics = vim.diagnostic.get(buf)
