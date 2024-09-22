@@ -97,71 +97,51 @@ function M.start_game(buf, cursor_position)
 			local time_msg =
 				string.format("🎉 You fixed all errors in %d minutes and %.2f seconds!", minutes, seconds)
 
-			-- Create a popup window to display the message
-			local width = 50
-			local height = 5
-			local col = math.floor((vim.o.columns - width) / 2)
-			local row = math.floor((vim.o.lines - height) / 2)
+			-- Display the message in a popup
+			local utils = require("turing_path.utils")
+			utils.show_popup(time_msg)
 
-			-- Create a floating window with the time message
-			local win_buf = vim.api.nvim_create_buf(false, true)
-			vim.api.nvim_buf_set_lines(win_buf, 0, -1, false, { "", time_msg, "", "" })
-			vim.api.nvim_buf_add_highlight(win_buf, -1, "Title", 1, 0, -1)
-
-			local win_id = vim.api.nvim_open_win(win_buf, true, {
-				relative = "editor",
-				width = width,
-				height = height,
-				col = col,
-				row = row,
-				style = "minimal",
-				border = "rounded",
-			})
-
-			-- Close the popup window after 3 seconds, reset the file, and restart the game
+			-- Clear highlights and reset the game after 3 seconds
 			vim.defer_fn(function()
-				if vim.api.nvim_win_is_valid(win_id) then
-					vim.api.nvim_win_close(win_id, true)
-				end
-				-- Clear all "G" highlights before restarting the game
-				clear_highlights(buf)
+				utils.clear_highlights(buf)
 
-				-- Undo all changes or reload the buffer to reset it to its original state
+				-- Undo all changes
 				vim.cmd("edit!") -- Reloads the buffer from disk, discarding unsaved changes
-
-				-- Place cursor at the predefined start position for the game
-				vim.api.nvim_win_set_cursor(0, cursor_position)
-
-				-- Now, we introduce a delay to allow LSP diagnostics to refresh before restarting the game
+				-- Wait for diagnostics to update after undoing
 				vim.defer_fn(function()
-					-- Check diagnostics again after allowing some time for LSP to refresh
-					local diagnostics_ready = false
+					local diagnostics_updated = false
 
-					local function check_lsp_diagnostics()
-						local diagnostics = vim.diagnostic.get(buf)
-						if #diagnostics > 0 then
-							diagnostics_ready = true
+					-- Function to wait until diagnostics are updated
+					local function wait_for_diagnostics()
+						local new_diagnostics = vim.diagnostic.get(buf)
+						if #new_diagnostics > 0 then
+							diagnostics_updated = true
 						end
 					end
 
-					-- Use an autocmd to wait for LSP diagnostics update
+					-- Set an autocmd to wait for diagnostic update
 					vim.api.nvim_create_autocmd("DiagnosticChanged", {
 						buffer = buf,
 						callback = function()
-							if diagnostics_ready then
-								-- Reapply the "G" highlights after restarting the game
-								highlight_letter_G(buf)
+							if diagnostics_updated then
+								-- Add a small delay to allow LSP diagnostics to refresh fully
+								vim.defer_fn(function()
+									-- Now restart the game
 
-								-- Start the game again once diagnostics have updated
-								M.start_game(buf, cursor_position)
+									vim.defer_fn(function()
+										-- Reapply the "G" highlights after restarting the game
+										utils.highlight_letter_G(buf)
+										M.start_game(buf, cursor_position)
+									end, 1000) -- Wait 1 second before restarting
+								end, 1000) -- Wait 500ms after diagnostics before restarting
 							end
 						end,
 					})
 
-					-- Give the LSP some time to process before checking diagnostics
-					vim.defer_fn(check_lsp_diagnostics, 1000)
-				end, 1000) -- Wait 1 second before checking diagnostics and restarting the game
-			end, 3000) -- 3 seconds for the popup before resetting
+					-- Start checking diagnostics after 1 second
+					vim.defer_fn(wait_for_diagnostics, 1000)
+				end, 1000) -- Wait 1 second after undoing changes
+			end, 3000) -- 3-second delay before resetting the game
 		end
 	end
 
