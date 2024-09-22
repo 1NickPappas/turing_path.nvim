@@ -17,6 +17,25 @@ function M.run()
 		"   Master nvim motions in style.",
 	}
 
+	-- Get screen size
+	local screen_width = vim.o.columns
+	local screen_height = vim.o.lines
+
+	-- Set the window size to 60% of the screen (square window)
+	local width = math.floor(screen_width * 0.6)
+	local height = math.floor(screen_height * 0.6)
+
+	-- Ensure the window remains square by using the smaller dimension
+	if width > height then
+		width = height
+	else
+		height = width
+	end
+
+	-- Calculate the position (center the window)
+	local col = math.floor((screen_width - width) / 2)
+	local row = math.floor((screen_height - height) / 2)
+
 	-- Create buffer for the floating window
 	local buf = vim.api.nvim_create_buf(false, true)
 	vim.api.nvim_buf_set_lines(buf, 0, -1, false, ascii_art)
@@ -25,13 +44,7 @@ function M.run()
 	vim.api.nvim_buf_add_highlight(buf, -1, "Title", 1, 0, -1) -- Highlight the title
 	vim.api.nvim_buf_add_highlight(buf, -1, "Title", 9, 0, -1) -- Highlight the subtitle
 
-	-- Window size and position (centered)
-	local width = 60
-	local height = #ascii_art + 2 -- Leave space for game selection prompt
-	local col = math.floor((vim.o.columns - width) / 2)
-	local row = math.floor((vim.o.lines - height) / 2)
-
-	-- Open the floating window in the center
+	-- Open the floating window
 	local win_id = vim.api.nvim_open_win(buf, true, {
 		relative = "editor",
 		width = width,
@@ -43,8 +56,8 @@ function M.run()
 	})
 
 	-- Instructions for user
-	vim.api.nvim_buf_set_lines(buf, height - 1, height, false, { "Select Game (0-3): " })
-	vim.api.nvim_buf_add_highlight(buf, -1, "Comment", height - 1, 0, -1) -- Highlight instructions
+	vim.api.nvim_buf_set_lines(buf, #ascii_art, #ascii_art, false, { "Select Game (0-3): " })
+	vim.api.nvim_buf_add_highlight(buf, -1, "Comment", #ascii_art, 0, -1) -- Highlight instructions
 
 	-- Keyboard Navigation: Allow ESC to close the window
 	vim.api.nvim_buf_set_keymap(
