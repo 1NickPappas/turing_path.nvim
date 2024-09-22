@@ -14,6 +14,20 @@ local game_config = {
 	[3] = { file = plugin_path .. "/games/game3.ts", cursor = { 3, 0 } },
 }
 
+-- Main function to start the Turing Path game
+function M.run()
+	utils.display_start_window(function()
+		-- After the start window closes, let the user select the mode and game
+		utils.select_mode_and_game(function(mode, game_number)
+			-- Here you can handle mode if necessary (e.g., adjust difficulty settings)
+			vim.notify("Starting game in " .. mode .. " mode.")
+
+			-- Proceed to open the selected game
+			M.open_game(game_number)
+		end)
+	end)
+end
+
 -- Function to start the game and manage the game flow
 function M.open_game(game_number)
 	local game = game_config[game_number]
