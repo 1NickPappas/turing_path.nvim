@@ -9,9 +9,9 @@ local plugin_path = vim.fn.stdpath("data") .. "/lazy/" .. plugin_name
 -- Define a table that maps each game to its corresponding file path and cursor position
 local game_config = {
 	[0] = { file = plugin_path .. "/games/example_game.ts", cursor = { 5, 10 } },
-	[1] = { file = plugin_path .. "/games/game1.ts", cursor = { 8, 45 } },
+	[1] = { file = plugin_path .. "/games/game1.ts", cursor = { 6, 45 } },
 	[2] = { file = plugin_path .. "/games/game2.ts", cursor = { 10, 5 } },
-	[3] = { file = plugin_path .. "/games/game3.ts", cursor = { 3, 0 } },
+	[3] = { file = plugin_path .. "/games/game3.ts", cursor = { 7, 0 } },
 }
 
 -- Function to start the game and manage the game flow

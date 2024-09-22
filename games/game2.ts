@@ -1,5 +1,3 @@
-
-
 // Use "w" to jump to the start of the next word and "e" to jump to the end of the next word.
 //
 // Each line has an error. Use "x" to delete the character at the cursor position.
