@@ -35,10 +35,12 @@ end
 
 -- Function to handle 'x' keypress in normal mode
 function M.handle_x()
+	vim.notify("handle_x called") -- Debugging notification
+
 	local buf = vim.api.nvim_get_current_buf()
 	local row, col = unpack(vim.api.nvim_win_get_cursor(0))
 	local line = vim.api.nvim_buf_get_lines(buf, row - 1, row, false)[1]
-	local char_index = col -- In Lua strings, indexing starts at 1
+	local char_index = col -- Neovim's col is 1-based in Lua
 
 	local char = line:sub(char_index, char_index)
 
@@ -67,9 +69,8 @@ function M.handle_x()
 		-- Add a new "G" after deletion
 		add_random_G(buf)
 	else
-		-- Do nothing or prevent deletion to maintain square shape
-		-- Optionally, you could notify the user that only 'G's can be deleted
-		-- vim.notify("You can only delete 'G's!", vim.log.levels.WARN)
+		-- Optionally, notify the user that only 'G's can be deleted
+		vim.notify("You can only delete 'G's!", vim.log.levels.WARN)
 	end
 end
 
@@ -81,14 +82,14 @@ function M.start_game_mode_0(buf)
 	-- Insert an initial "G" inside the square
 	add_random_G(buf)
 
-	-- Map 'x' key in normal mode to our custom function
-	vim.api.nvim_buf_set_keymap(
-		buf,
-		"n",
-		"x",
-		'<Cmd>lua require("turing_path.games.special_mode").handle_x()<CR>',
-		{ noremap = true, silent = true }
-	)
+	-- Map 'x' key in normal mode to our custom function using Lua callback
+	vim.api.nvim_buf_set_keymap(buf, "n", "x", "", {
+		noremap = true,
+		silent = true,
+		callback = function()
+			require("turing_path.games.special_mode").handle_x()
+		end,
+	})
 
 	-- Notify the user about the game objective
 	vim.notify("Game started: Delete 15 Gs by pressing 'x'!", vim.log.levels.INFO)
