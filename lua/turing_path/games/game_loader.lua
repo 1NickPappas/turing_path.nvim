@@ -80,6 +80,7 @@ function M.open_game(game_number)
 end
 
 -- Function to start the timer, check diagnostics, and restart the game
+-- Function to start the timer, check diagnostics, and restart the game
 function M.start_game(buf, cursor_position)
 	local start_time = vim.loop.hrtime()
 
@@ -114,7 +115,11 @@ function M.start_game(buf, cursor_position)
 
 				-- Undo all changes
 				vim.cmd("edit!") -- Reloads the buffer from disk, discarding unsaved changes
-				-- Wait for diagnostics to update after undoing
+
+				-- Clear the autocmd group to prevent multiple triggers
+				vim.api.nvim_clear_autocmds({ group = "TuringPathDiagnostics", buffer = buf })
+
+				-- Restart the game after undoing changes and diagnostics update
 				vim.defer_fn(function()
 					local diagnostics_updated = false
 
@@ -126,7 +131,7 @@ function M.start_game(buf, cursor_position)
 						end
 					end
 
-					-- Set an autocmd to wait for diagnostic update
+					-- Create autocmd to wait for diagnostic update
 					vim.api.nvim_create_autocmd("DiagnosticChanged", {
 						buffer = buf,
 						callback = function()
