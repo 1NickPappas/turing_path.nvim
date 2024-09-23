@@ -6,6 +6,7 @@ local M = {}
 local square_top = 4
 local square_bottom = 12
 local square_left = 3
+
 local square_right = 36
 
 -- Maximum number of "G"s to be deleted before the game ends
