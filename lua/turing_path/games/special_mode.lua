@@ -3,6 +3,7 @@
 local M = {}
 
 -- Constants for the square boundaries
+--
 local square_top = 4
 local square_bottom = 12
 local square_left = 3
@@ -33,56 +34,38 @@ local function add_random_G(buf)
 	end
 end
 
--- Function to check if a G was deleted and handle the game logic
-local function check_deletion(buf, cursor_position)
-	-- Get current line and column
+-- Function to handle 'x' keypress in normal mode
+
+function M.handle_x(buf)
+	-- Replace the character under the cursor with a space
+
+	-- Get current cursor position
 	local row, col = unpack(vim.api.nvim_win_get_cursor(0))
+	-- Neovim uses 1-based indexing for rows and 0-based indexing for columns
+
+	-- Adjust col for 1-based indexing in Lua strings
+	local char_index = col + 1
+
+	-- Get the current line
 	local line = vim.api.nvim_buf_get_lines(buf, row - 1, row, false)[1]
 
-	-- If the previous character at the cursor position was a "G", handle it
-	if line:sub(col, col) == " " then -- Check the space after 'x' removes the G
-		local previous_char = vim.fn.getline(row):sub(col - 1, col - 1)
-		if previous_char == "G" then
-			deleted_G_count = deleted_G_count + 1
-			vim.notify("Deleted " .. deleted_G_count .. " Gs out of " .. max_Gs_to_delete)
-
-			-- Replace the previous "G" with a space
-			local new_line = line:sub(1, col - 2) .. " " .. line:sub(col)
-			vim.api.nvim_buf_set_lines(buf, row - 1, row, false, { new_line })
-
-			-- Check if the game is completed
-			if deleted_G_count >= max_Gs_to_delete then
-				vim.notify("🎉 You have successfully deleted 15 Gs! Game Over!", vim.log.levels.INFO)
-				deleted_G_count = 0
-				vim.api.nvim_clear_autocmds({ group = "GDeletionGame" })
-				return
-			end
-
-			-- Add a new "G" after deletion
-			add_random_G(buf)
-		end
-	end
+	-- Replace the character at the cursor with a space
+	local new_line = line:sub(1, char_index - 1) .. " " .. line:sub(char_index + 1)
+	vim.api.nvim_buf_set_lines(buf, row - 1, row, false, { new_line })
 end
 
 -- Function to start the special game mode for Game 0
 function M.start_game_mode_0(buf)
 	-- Clear any previous autocmd group to avoid stacking
-	local game_group = vim.api.nvim_create_augroup("GDeletionGame", { clear = true })
+	vim.api.nvim_create_augroup("GDeletionGame", { clear = true })
 
 	-- Insert an initial "G" inside the square
 	add_random_G(buf)
 
-	-- Create an autocmd to listen for the "x" key being pressed
-	vim.api.nvim_create_autocmd("TextChanged", {
-		group = game_group,
-		buffer = buf,
-		callback = function()
-			-- Get the current cursor position
-			local cursor_position = vim.api.nvim_win_get_cursor(0)
-			-- Check if a "G" was deleted and update the game state
-			check_deletion(buf, cursor_position)
-		end,
-	})
+	-- Map 'x' key in normal mode to our custom function using vim.keymap.set
+	vim.keymap.set("n", "x", function()
+		require("turing_path.games.special_mode").handle_x(buf)
+	end, { buffer = buf, silent = true, noremap = true })
 
 	-- Notify the user about the game objective
 	vim.notify("Game started: Delete 15 Gs by pressing 'x'!", vim.log.levels.INFO)
