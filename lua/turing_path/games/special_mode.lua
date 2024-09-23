@@ -34,41 +34,23 @@ local function add_random_G(buf)
 end
 
 -- Function to handle 'x' keypress in normal mode
+
 function M.handle_x(buf)
+	-- Replace the character under the cursor with a space
+
 	-- Get current cursor position
 	local row, col = unpack(vim.api.nvim_win_get_cursor(0))
+	-- Neovim uses 1-based indexing for rows and 0-based indexing for columns
+
+	-- Adjust col for 1-based indexing in Lua strings
+	local char_index = col + 1
+
+	-- Get the current line
 	local line = vim.api.nvim_buf_get_lines(buf, row - 1, row, false)[1]
 
-	local char = line:sub(col, col)
-
-	if char == "G" then
-		-- Replace 'G' with a space
-		local new_line = line:sub(1, col - 1) .. " " .. line:sub(col + 1)
-		vim.api.nvim_buf_set_lines(buf, row - 1, row, false, { new_line })
-
-		-- Increment counter
-		deleted_G_count = deleted_G_count + 1
-		vim.notify("Deleted " .. deleted_G_count .. " Gs out of " .. max_Gs_to_delete)
-
-		-- Check if the game is completed
-		if deleted_G_count >= max_Gs_to_delete then
-			vim.notify(
-				"🎉 You have successfully deleted " .. max_Gs_to_delete .. " Gs! Game Over!",
-				vim.log.levels.INFO
-			)
-			deleted_G_count = 0
-			vim.api.nvim_clear_autocmds({ group = "GDeletionGame" })
-			-- Unmap the 'x' key to end the game
-			vim.keymap.del("n", "x", { buffer = buf })
-			return
-		end
-
-		-- Add a new "G" after deletion
-		add_random_G(buf)
-	else
-		-- Optionally, notify the user that only 'G's can be deleted
-		vim.notify("You can only delete 'G's!", vim.log.levels.WARN)
-	end
+	-- Replace the character at the cursor with a space
+	local new_line = line:sub(1, char_index - 1) .. " " .. line:sub(char_index + 1)
+	vim.api.nvim_buf_set_lines(buf, row - 1, row, false, { new_line })
 end
 
 -- Function to start the special game mode for Game 0
