@@ -1,5 +1,4 @@
 -- lua/turing_path/games/special_mode.lua
-
 local M = {}
 
 -- Same code we wrote earlier for game mode 0
