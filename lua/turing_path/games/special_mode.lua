@@ -34,19 +34,16 @@ local function add_random_G(buf)
 end
 
 -- Function to handle 'x' keypress in normal mode
-function M.handle_x()
-	vim.notify("handle_x called") -- Debugging notification
-
-	local buf = vim.api.nvim_get_current_buf()
+function M.handle_x(buf)
+	-- Get current cursor position
 	local row, col = unpack(vim.api.nvim_win_get_cursor(0))
 	local line = vim.api.nvim_buf_get_lines(buf, row - 1, row, false)[1]
-	local char_index = col -- Neovim's col is 1-based in Lua
 
-	local char = line:sub(char_index, char_index)
+	local char = line:sub(col, col)
 
 	if char == "G" then
 		-- Replace 'G' with a space
-		local new_line = line:sub(1, char_index - 1) .. " " .. line:sub(char_index + 1)
+		local new_line = line:sub(1, col - 1) .. " " .. line:sub(col + 1)
 		vim.api.nvim_buf_set_lines(buf, row - 1, row, false, { new_line })
 
 		-- Increment counter
@@ -62,7 +59,7 @@ function M.handle_x()
 			deleted_G_count = 0
 			vim.api.nvim_clear_autocmds({ group = "GDeletionGame" })
 			-- Unmap the 'x' key to end the game
-			vim.api.nvim_buf_del_keymap(buf, "n", "x")
+			vim.keymap.del("n", "x", { buffer = buf })
 			return
 		end
 
@@ -77,19 +74,15 @@ end
 -- Function to start the special game mode for Game 0
 function M.start_game_mode_0(buf)
 	-- Clear any previous autocmd group to avoid stacking
-	local game_group = vim.api.nvim_create_augroup("GDeletionGame", { clear = true })
+	vim.api.nvim_create_augroup("GDeletionGame", { clear = true })
 
 	-- Insert an initial "G" inside the square
 	add_random_G(buf)
 
-	-- Map 'x' key in normal mode to our custom function using Lua callback
-	vim.api.nvim_buf_set_keymap(buf, "n", "x", "", {
-		noremap = true,
-		silent = true,
-		callback = function()
-			require("turing_path.games.special_mode").handle_x()
-		end,
-	})
+	-- Map 'x' key in normal mode to our custom function using vim.keymap.set
+	vim.keymap.set("n", "x", function()
+		require("turing_path.games.special_mode").handle_x(buf)
+	end, { buffer = buf, silent = true, noremap = true })
 
 	-- Notify the user about the game objective
 	vim.notify("Game started: Delete 15 Gs by pressing 'x'!", vim.log.levels.INFO)
