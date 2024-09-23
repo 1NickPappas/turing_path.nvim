@@ -1,6 +1,3 @@
-
-
-
 // Use "b" to jump to the start of the previous word and "ge" to jump to the end of the previous word.
 //
 // Each line has an error. Use "x" to delete the character at the cursor position.
