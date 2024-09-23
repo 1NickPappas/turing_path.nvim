@@ -6,7 +6,6 @@ local M = {}
 local square_top = 4
 local square_bottom = 12
 local square_left = 3
-
 local square_right = 36
 
 -- Maximum number of "G"s to be deleted before the game ends
@@ -36,12 +35,12 @@ end
 
 -- Function to check if a G was deleted and handle the game logic
 local function check_deletion(buf, cursor_position)
-	-- Get current line and column
+	-- Get the current cursor position
 	local row, col = unpack(vim.api.nvim_win_get_cursor(0))
 	local line = vim.api.nvim_buf_get_lines(buf, row - 1, row, false)[1]
 
-	-- If the previous character at the cursor position was a "G", handle it
-	if line:sub(col, col) == " " then -- Check the space after 'x' removes the G
+	-- The previous character (before the cursor moved) is the deleted one
+	if col > 1 then
 		local previous_char = vim.fn.getline(row):sub(col - 1, col - 1)
 		if previous_char == "G" then
 			deleted_G_count = deleted_G_count + 1
