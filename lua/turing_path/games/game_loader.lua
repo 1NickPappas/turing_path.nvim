@@ -81,7 +81,11 @@ end
 
 -- Function to start the timer, check diagnostics, and restart the game
 -- Function to start the timer, check diagnostics, and restart the game
+-- Function to start the timer, check diagnostics, and restart the game
 function M.start_game(buf, cursor_position)
+	-- Create an autocmd group for diagnostics (if it doesn't exist)
+	local diag_group = vim.api.nvim_create_augroup("TuringPathDiagnostics", { clear = true })
+
 	-- Start the timer
 	local start_time = vim.loop.hrtime()
 
@@ -111,7 +115,7 @@ function M.start_game(buf, cursor_position)
 			utils.show_popup(time_msg)
 
 			-- Clear the diagnostics autocmd group to avoid multiple triggers
-			vim.api.nvim_clear_autocmds({ group = "TuringPathDiagnostics", buffer = buf })
+			vim.api.nvim_clear_autocmds({ group = diag_group, buffer = buf })
 
 			-- Clear highlights and reset the game after 3 seconds
 			vim.defer_fn(function()
@@ -136,10 +140,7 @@ function M.start_game(buf, cursor_position)
 	end
 
 	-- Clear any previous diagnostics autocmds to avoid stacking triggers
-	vim.api.nvim_clear_autocmds({ group = "TuringPathDiagnostics", buffer = buf })
-
-	-- Create a new autocmd group for diagnostics check
-	local diag_group = vim.api.nvim_create_augroup("TuringPathDiagnostics", { clear = true })
+	vim.api.nvim_clear_autocmds({ group = diag_group, buffer = buf })
 
 	-- Set up autocmd to check diagnostics whenever they change
 	vim.api.nvim_create_autocmd("DiagnosticChanged", {
