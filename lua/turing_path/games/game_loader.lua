@@ -81,6 +81,7 @@ end
 
 -- Function to start the timer, check diagnostics, and restart the game
 -- Function to start the timer, check diagnostics, and restart the game
+-- Function to start the timer, check diagnostics, and restart the game
 function M.start_game(buf, cursor_position)
 	local start_time = vim.loop.hrtime()
 
@@ -109,6 +110,9 @@ function M.start_game(buf, cursor_position)
 			local utils = require("turing_path.utils")
 			utils.show_popup(time_msg)
 
+			-- Clear the diagnostics autocmd group to avoid multiple triggers
+			vim.api.nvim_clear_autocmds({ group = "TuringPathDiagnostics", buffer = buf })
+
 			-- Clear highlights and reset the game after 3 seconds
 			vim.defer_fn(function()
 				utils.clear_highlights(buf)
@@ -116,54 +120,28 @@ function M.start_game(buf, cursor_position)
 				-- Undo all changes
 				vim.cmd("edit!") -- Reloads the buffer from disk, discarding unsaved changes
 
-				-- Clear the autocmd group to prevent multiple triggers
-				vim.api.nvim_clear_autocmds({ group = "TuringPathDiagnostics", buffer = buf })
-
-				-- Restart the game after undoing changes and diagnostics update
+				-- Reapply highlights and restart the game after a delay
 				vim.defer_fn(function()
-					local diagnostics_updated = false
-
-					-- Function to wait until diagnostics are updated
-					local function wait_for_diagnostics()
-						local new_diagnostics = vim.diagnostic.get(buf)
-						if #new_diagnostics > 0 then
-							diagnostics_updated = true
-						end
-					end
-
-					-- Create autocmd to wait for diagnostic update
-					vim.api.nvim_create_autocmd("DiagnosticChanged", {
-						buffer = buf,
-						callback = function()
-							if diagnostics_updated then
-								-- Add a small delay to allow LSP diagnostics to refresh fully
-								vim.defer_fn(function()
-									-- Now restart the game
-
-									vim.defer_fn(function()
-										-- Reapply the "G" highlights after restarting the game
-										utils.highlight_letter_G(buf)
-										M.start_game(buf, cursor_position)
-									end, 1000) -- Wait 1 second before restarting
-								end, 1000) -- Wait 500ms after diagnostics before restarting
-							end
-						end,
-					})
-
-					-- Start checking diagnostics after 1 second
-					vim.defer_fn(wait_for_diagnostics, 1000)
-				end, 1000) -- Wait 1 second after undoing changes
+					-- Reapply the "G" highlights after restarting the game
+					utils.highlight_letter_G(buf)
+					M.start_game(buf, cursor_position)
+				end, 1000) -- Wait 1 second before restarting
 			end, 3000) -- 3-second delay before resetting the game
 		end
 	end
 
-	-- Create autocmd for diagnostics check
+	-- Clear previous autocmds to ensure we don't have multiple active autocmds
+	vim.api.nvim_clear_autocmds({ group = "TuringPathDiagnostics", buffer = buf })
+
+	-- Create a new autocmd group for diagnostics check
 	local diag_group = vim.api.nvim_create_augroup("TuringPathDiagnostics", { clear = true })
+
+	-- Create autocmd for diagnostics check
 	vim.api.nvim_create_autocmd("DiagnosticChanged", {
 		group = diag_group,
 		buffer = buf,
 		callback = function()
-			vim.defer_fn(check_diagnostics, 100)
+			vim.defer_fn(check_diagnostics, 100) -- Defer slightly to allow diagnostics to update
 		end,
 	})
 end
