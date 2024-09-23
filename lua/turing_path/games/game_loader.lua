@@ -14,6 +14,9 @@ local game_config = {
 	[3] = { file = plugin_path .. "/games/game3.ts", cursor = { 7, 0 } },
 }
 
+-- Import the game logic from utils
+local utils = require("turing_path.utils")
+
 -- Function to start the game and manage the game flow
 function M.open_game(game_number)
 	local game = game_config[game_number]
@@ -36,11 +39,10 @@ function M.open_game(game_number)
 		vim.api.nvim_buf_set_option(buf, "filetype", "typescript")
 
 		-- Highlight all "G" in the buffer with a red background
-		require("turing_path.utils").highlight_letter_G(buf)
+		utils.highlight_letter_G(buf)
 
-		-- Function to disable mouse events and arrow keys
+		-- Disable mouse events and arrow keys
 		local function disable_controls()
-			-- Disable mouse events
 			local mouse_events = {
 				"<LeftMouse>",
 				"<RightMouse>",
@@ -58,14 +60,10 @@ function M.open_game(game_number)
 				vim.api.nvim_buf_set_keymap(buf, "", event, "<Nop>", { noremap = true, silent = true })
 			end
 
-			-- Disable arrow keys in normal and visual modes
 			local opts = { noremap = true, silent = true }
-			local function disable_key(mode, key)
-				vim.api.nvim_buf_set_keymap(buf, mode, key, "<Nop>", opts)
-			end
 			for _, mode in ipairs({ "n", "v" }) do
 				for _, key in ipairs({ "<Up>", "<Down>", "<Left>", "<Right>" }) do
-					disable_key(mode, key)
+					vim.api.nvim_buf_set_keymap(buf, mode, key, "<Nop>", opts)
 				end
 			end
 		end
@@ -75,7 +73,7 @@ function M.open_game(game_number)
 		-- Check if we are in the special game mode (game 0)
 		if game_number == 0 then
 			-- Import the function that handles the special mode for Game 0
-			require("turing_path.games.hjkl_mode.lua").start_game_mode_0(buf)
+			require("turing_path.games.special_mode").start_game_mode_0(buf)
 		else
 			-- For other games, start the normal game logic
 			M.start_game(buf, game.cursor)
@@ -96,63 +94,47 @@ function M.start_game(buf, cursor_position)
 	-- Set the cursor position inside start_game
 	vim.defer_fn(function()
 		local win = vim.api.nvim_get_current_win()
-		-- Set the cursor to the provided position (line and column)
 		vim.api.nvim_win_set_cursor(win, cursor_position)
-	end, 100) -- Add a small delay to ensure the file is fully loaded
+	end, 100)
 
 	-- Function to check diagnostics and handle game completion
 	local function check_diagnostics()
 		local diagnostics = vim.diagnostic.get(buf)
 		if #diagnostics == 0 then
-			-- Stop the timer
 			local end_time = vim.loop.hrtime()
 			local elapsed_ns = end_time - start_time
-			local elapsed_sec = elapsed_ns / 1e9 -- Convert nanoseconds to seconds
+			local elapsed_sec = elapsed_ns / 1e9
 
 			local minutes = math.floor(elapsed_sec / 60)
 			local seconds = elapsed_sec % 60
 			local time_msg =
 				string.format("🎉 You fixed all errors in %d minutes and %.2f seconds!", minutes, seconds)
 
-			-- Create a floating popup window to display the message
 			local utils = require("turing_path.utils")
 			utils.show_popup(time_msg)
 
-			-- Clear the diagnostics autocmd group to avoid multiple triggers
 			vim.api.nvim_clear_autocmds({ group = diag_group, buffer = buf })
 
-			-- Clear highlights and reset the game after 3 seconds
 			vim.defer_fn(function()
 				utils.clear_highlights(buf)
-
-				-- Undo all changes
-				vim.cmd("edit!") -- Reloads the buffer from disk, discarding unsaved changes
-
-				-- Set cursor back to the starting position
+				vim.cmd("edit!") -- Reload the buffer from disk
 				vim.api.nvim_win_set_cursor(0, cursor_position)
 
-				-- Reapply highlights and restart the game after a delay
 				vim.defer_fn(function()
-					-- Reapply the "G" highlights after restarting the game
 					utils.highlight_letter_G(buf)
-
-					-- Restart the game
 					M.start_game(buf, cursor_position)
-				end, 1000) -- Wait 1 second before restarting
-			end, 3000) -- 3-second delay before resetting the game
+				end, 1000)
+			end, 3000)
 		end
 	end
 
-	-- Clear any previous diagnostics autocmds to avoid stacking triggers
 	vim.api.nvim_clear_autocmds({ group = diag_group, buffer = buf })
 
-	-- Set up autocmd to check diagnostics whenever they change
 	vim.api.nvim_create_autocmd("DiagnosticChanged", {
 		group = diag_group,
 		buffer = buf,
 		callback = function()
-			-- Check diagnostics after LSP updates
-			vim.defer_fn(check_diagnostics, 100) -- Slight delay to allow diagnostics to update
+			vim.defer_fn(check_diagnostics, 100)
 		end,
 	})
 end
