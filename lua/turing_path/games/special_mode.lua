@@ -34,14 +34,14 @@ local function add_random_G(buf)
 end
 
 -- Function to check if a G was deleted and handle the game logic
-local function check_deletion(buf, cursor_position)
+local function check_deletion(buf)
 	-- Get the current cursor position
 	local row, col = unpack(vim.api.nvim_win_get_cursor(0))
 	local line = vim.api.nvim_buf_get_lines(buf, row - 1, row, false)[1]
 
-	-- The previous character (before the cursor moved) is the deleted one
+	-- The deleted character is the one at the previous cursor position
 	if col > 1 then
-		local previous_char = vim.fn.getline(row):sub(col - 1, col - 1)
+		local previous_char = line:sub(col - 1, col - 1)
 		if previous_char == "G" then
 			deleted_G_count = deleted_G_count + 1
 			vim.notify("Deleted " .. deleted_G_count .. " Gs out of " .. max_Gs_to_delete)
@@ -77,10 +77,8 @@ function M.start_game_mode_0(buf)
 		group = game_group,
 		buffer = buf,
 		callback = function()
-			-- Get the current cursor position
-			local cursor_position = vim.api.nvim_win_get_cursor(0)
 			-- Check if a "G" was deleted and update the game state
-			check_deletion(buf, cursor_position)
+			check_deletion(buf)
 		end,
 	})
 
