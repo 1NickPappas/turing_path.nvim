@@ -8,7 +8,7 @@ local plugin_path = vim.fn.stdpath("data") .. "/lazy/" .. plugin_name
 
 -- Define a table that maps each game to its corresponding file path and cursor position
 local game_config = {
-	[0] = { file = plugin_path .. "/games/example_game.ts", cursor = { 5, 10 } },
+	[0] = { file = plugin_path .. "/games/game0.ts", cursor = { 5, 10 } },
 	[1] = { file = plugin_path .. "/games/game1.ts", cursor = { 6, 45 } },
 	[2] = { file = plugin_path .. "/games/game2.ts", cursor = { 7, 0 } },
 	[3] = { file = plugin_path .. "/games/game3.ts", cursor = { 7, 0 } },
@@ -72,15 +72,19 @@ function M.open_game(game_number)
 
 		disable_controls()
 
-		-- Start the game logic (diagnostics, timer, etc.)
-		M.start_game(buf, game.cursor)
+		-- Check if we are in the special game mode (game 0)
+		if game_number == 0 then
+			-- Import the function that handles the special mode for Game 0
+			require("turing_path.games.special_mode").start_game_mode_0(buf)
+		else
+			-- For other games, start the normal game logic
+			M.start_game(buf, game.cursor)
+		end
 	else
 		vim.notify("Game file not found: " .. tutor_file, vim.log.levels.ERROR)
 	end
 end
 
--- Function to start the timer, check diagnostics, and restart the game
--- Function to start the timer, check diagnostics, and restart the game
 -- Function to start the timer, check diagnostics, and restart the game
 function M.start_game(buf, cursor_position)
 	-- Create an autocmd group for diagnostics (if it doesn't exist)
