@@ -14,16 +14,23 @@ local max_Gs_to_delete = 15
 -- Function to track G deletions
 local deleted_G_count = 0
 
--- Function to randomly insert a "G" inside the square
+-- Function to randomly insert a "G" inside the inner square (excluding the edges)
 local function add_random_G(buf)
-	-- Get random positions within the square
+	-- Get random positions within the inner part of the square (excluding edges)
 	local row = math.random(square_top + 1, square_bottom - 1)
 	local col = math.random(square_left + 1, square_right - 1)
 
 	-- Insert "G" at the random position by replacing the space
 	local line = vim.api.nvim_buf_get_lines(buf, row - 1, row, false)[1]
-	local new_line = line:sub(1, col - 1) .. "G" .. line:sub(col + 1)
-	vim.api.nvim_buf_set_lines(buf, row - 1, row, false, { new_line })
+
+	-- Ensure that a space exists at the random position before placing "G"
+	if line:sub(col, col) == " " then
+		local new_line = line:sub(1, col - 1) .. "G" .. line:sub(col + 1)
+		vim.api.nvim_buf_set_lines(buf, row - 1, row, false, { new_line })
+	else
+		-- If the position is not empty, try again
+		add_random_G(buf)
+	end
 end
 
 -- Function to check if a G was deleted and handle the game logic
