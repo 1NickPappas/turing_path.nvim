@@ -3,6 +3,7 @@
 local M = {}
 
 -- Constants for the square boundaries
+--
 local square_top = 4
 local square_bottom = 12
 local square_left = 3
