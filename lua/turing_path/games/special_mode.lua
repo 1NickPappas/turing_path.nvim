@@ -33,34 +33,43 @@ local function add_random_G(buf)
 	end
 end
 
--- Function to check if a G was deleted and handle the game logic
-local function check_deletion(buf)
-	-- Get the current cursor position
+-- Function to handle 'x' keypress in normal mode
+function M.handle_x()
+	local buf = vim.api.nvim_get_current_buf()
 	local row, col = unpack(vim.api.nvim_win_get_cursor(0))
 	local line = vim.api.nvim_buf_get_lines(buf, row - 1, row, false)[1]
+	local char_index = col -- In Lua strings, indexing starts at 1
 
-	-- The deleted character is the one at the previous cursor position
-	if col > 1 then
-		local previous_char = line:sub(col - 1, col - 1)
-		if previous_char == "G" then
-			deleted_G_count = deleted_G_count + 1
-			vim.notify("Deleted " .. deleted_G_count .. " Gs out of " .. max_Gs_to_delete)
+	local char = line:sub(char_index, char_index)
 
-			-- Replace the previous "G" with a space
-			local new_line = line:sub(1, col - 2) .. " " .. line:sub(col)
-			vim.api.nvim_buf_set_lines(buf, row - 1, row, false, { new_line })
+	if char == "G" then
+		-- Replace 'G' with a space
+		local new_line = line:sub(1, char_index - 1) .. " " .. line:sub(char_index + 1)
+		vim.api.nvim_buf_set_lines(buf, row - 1, row, false, { new_line })
 
-			-- Check if the game is completed
-			if deleted_G_count >= max_Gs_to_delete then
-				vim.notify("🎉 You have successfully deleted 15 Gs! Game Over!", vim.log.levels.INFO)
-				deleted_G_count = 0
-				vim.api.nvim_clear_autocmds({ group = "GDeletionGame" })
-				return
-			end
+		-- Increment counter
+		deleted_G_count = deleted_G_count + 1
+		vim.notify("Deleted " .. deleted_G_count .. " Gs out of " .. max_Gs_to_delete)
 
-			-- Add a new "G" after deletion
-			add_random_G(buf)
+		-- Check if the game is completed
+		if deleted_G_count >= max_Gs_to_delete then
+			vim.notify(
+				"🎉 You have successfully deleted " .. max_Gs_to_delete .. " Gs! Game Over!",
+				vim.log.levels.INFO
+			)
+			deleted_G_count = 0
+			vim.api.nvim_clear_autocmds({ group = "GDeletionGame" })
+			-- Unmap the 'x' key to end the game
+			vim.api.nvim_buf_del_keymap(buf, "n", "x")
+			return
 		end
+
+		-- Add a new "G" after deletion
+		add_random_G(buf)
+	else
+		-- Do nothing or prevent deletion to maintain square shape
+		-- Optionally, you could notify the user that only 'G's can be deleted
+		-- vim.notify("You can only delete 'G's!", vim.log.levels.WARN)
 	end
 end
 
@@ -72,15 +81,14 @@ function M.start_game_mode_0(buf)
 	-- Insert an initial "G" inside the square
 	add_random_G(buf)
 
-	-- Create an autocmd to listen for the "x" key being pressed
-	vim.api.nvim_create_autocmd("TextChanged", {
-		group = game_group,
-		buffer = buf,
-		callback = function()
-			-- Check if a "G" was deleted and update the game state
-			check_deletion(buf)
-		end,
-	})
+	-- Map 'x' key in normal mode to our custom function
+	vim.api.nvim_buf_set_keymap(
+		buf,
+		"n",
+		"x",
+		'<Cmd>lua require("turing_path.games.special_mode").handle_x()<CR>',
+		{ noremap = true, silent = true }
+	)
 
 	-- Notify the user about the game objective
 	vim.notify("Game started: Delete 15 Gs by pressing 'x'!", vim.log.levels.INFO)
