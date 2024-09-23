@@ -75,7 +75,7 @@ function M.open_game(game_number)
 		-- Check if we are in the special game mode (game 0)
 		if game_number == 0 then
 			-- Import the function that handles the special mode for Game 0
-			require("turing_path.games.special_mode").start_game_mode_0(buf)
+			require("turing_path.games.hjkl_mode.lua").start_game_mode_0(buf)
 		else
 			-- For other games, start the normal game logic
 			M.start_game(buf, game.cursor)
