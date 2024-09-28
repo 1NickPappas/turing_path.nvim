@@ -1,4 +1,5 @@
 -- lua/turing_path/games/special_mode.lua
+--
 
 local M = {}
 
