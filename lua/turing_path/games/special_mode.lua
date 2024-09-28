@@ -1,5 +1,4 @@
 -- lua/turing_path/games/special_mode.lua
---
 
 local M = {}
 
@@ -34,6 +33,61 @@ local function add_random_G(buf)
 	end
 end
 
+-- Function to show the congratulations popup and handle game restart
+local function show_congrats_popup(buf)
+	-- Create a new buffer for the popup
+	local popup_buf = vim.api.nvim_create_buf(false, true)
+
+	-- Set the popup message
+	local message = {
+		"Congratulations!",
+		"You have deleted all Gs!",
+		"",
+		"Press 'r' to play again.",
+	}
+	vim.api.nvim_buf_set_lines(popup_buf, 0, -1, false, message)
+
+	-- Define popup window options
+	local width = 40
+	local height = 6
+	local opts = {
+		relative = "editor",
+		width = width,
+		height = height,
+		col = (vim.o.columns - width) / 2,
+		row = (vim.o.lines - height) / 2,
+		style = "minimal",
+		border = "rounded",
+	}
+
+	-- Create the popup window
+	local popup_win = vim.api.nvim_open_win(popup_buf, true, opts)
+
+	-- Map 'r' to restart the game
+	vim.api.nvim_buf_set_keymap(popup_buf, "n", "r", "", {
+		noremap = true,
+		silent = true,
+		callback = function()
+			-- Close the popup window
+			vim.api.nvim_win_close(popup_win, true)
+			-- Restart the game
+			M.restart_game(buf)
+		end,
+	})
+
+	-- Disable other keys in the popup
+	vim.api.nvim_buf_set_keymap(popup_buf, "n", "<ESC>", "", {
+		noremap = true,
+		silent = true,
+		callback = function()
+			-- Do nothing
+		end,
+	})
+
+	-- Set the buffer to not be modifiable
+	vim.api.nvim_buf_set_option(popup_buf, "modifiable", false)
+end
+
 -- Function to handle 'x' keypress in normal mode
 function M.handle_x(buf)
 	-- Get current cursor position
@@ -61,7 +115,8 @@ function M.handle_x(buf)
 		if deleted_G_count >= max_Gs_to_delete then
 			-- Unmap the 'x' key
 			vim.api.nvim_buf_del_keymap(buf, "n", "x")
-			vim.notify("Congratulations! You have deleted all Gs!", vim.log.levels.INFO)
+			-- Show the congratulations popup
+			show_congrats_popup(buf)
 		else
 			-- Respawn a "G" at a random position
 			add_random_G(buf)
@@ -74,8 +129,16 @@ end
 
 -- Function to start the special game mode for Game 0
 function M.start_game_mode_0(buf)
+	-- Reset deleted_G_count
+	deleted_G_count = 0
+
 	-- Clear any previous autocmd group to avoid stacking
 	vim.api.nvim_create_augroup("GDeletionGame", { clear = true })
+
+	-- Clear the buffer and redraw the square (assuming you have a function to draw the square)
+	if M.draw_square then
+		M.draw_square(buf)
+	end
 
 	-- Insert an initial "G" inside the square
 	add_random_G(buf)
@@ -87,6 +150,31 @@ function M.start_game_mode_0(buf)
 
 	-- Notify the user about the game objective
 	vim.notify("Game started: Delete 15 Gs by pressing 'x'!", vim.log.levels.INFO)
+end
+
+-- Function to restart the game
+function M.restart_game(buf)
+	-- Reset the game state
+	M.start_game_mode_0(buf)
+end
+
+-- Optional: Function to draw the square (if needed)
+function M.draw_square(buf)
+	-- Define the square lines
+	local lines = {}
+
+	for row = 1, square_bottom do
+		if row == square_top or row == square_bottom then
+			lines[row] = string.rep("-", square_right)
+		elseif row > square_top and row < square_bottom then
+			lines[row] = "|" .. string.rep(" ", square_right - 2) .. "|"
+		else
+			lines[row] = ""
+		end
+	end
+
+	-- Set the buffer lines
+	vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
 end
 
 return M
