@@ -24,15 +24,15 @@ local function add_random_G()
 	local row = math.random(square_top + 1, square_bottom - 1)
 	local col = math.random(square_left + 1, square_right - 1)
 
-	-- Insert "G" at the random position by replacing the space
+	-- Get the line at the random row
 	local line = vim.api.nvim_buf_get_lines(game_buf, row - 1, row, false)[1]
 
-	-- Ensure that a space exists at the random position before placing "G"
-	if line:sub(col, col) == " " then
+	-- Ensure that the line exists and a space is at the random position before placing "G"
+	if line and line:sub(col, col) == " " then
 		local new_line = line:sub(1, col - 1) .. "G" .. line:sub(col + 1)
 		vim.api.nvim_buf_set_lines(game_buf, row - 1, row, false, { new_line })
 	else
-		-- If the position is not empty, try again
+		-- If the position is not empty or line is nil, try again
 		add_random_G()
 	end
 end
@@ -104,6 +104,10 @@ function M.handle_x()
 	-- Get the current line
 	local line = vim.api.nvim_buf_get_lines(game_buf, row - 1, row, false)[1]
 
+	if not line then
+		return
+	end
+
 	-- Get the character under the cursor
 	local char_under_cursor = line:sub(char_index, char_index)
 
@@ -160,13 +164,15 @@ function M.start_game_mode_0()
 	vim.lsp.buf_detach_clients(game_buf)
 
 	-- Set up the square boundaries based on the window size
-	square_top = 2
+	-- Adjust for the explanation text at the top
+	local explanation_lines = 4 -- Number of lines used by the explanation
+	square_top = explanation_lines + 1
 	square_bottom = height - 2
-	square_left = 2
-	square_right = width - 2
+	square_left = 4
+	square_right = width - 4
 
-	-- Draw the square
-	M.draw_square()
+	-- Draw the explanation and the square
+	M.draw_square_with_explanation()
 
 	-- Insert an initial "G" inside the square
 	add_random_G()
@@ -191,22 +197,62 @@ function M.restart_game()
 	M.start_game_mode_0()
 end
 
--- Function to draw the square
-function M.draw_square()
+-- Function to draw the explanation and the square
+function M.draw_square_with_explanation()
 	local lines = {}
 
-	for row = 1, square_bottom do
-		if row == square_top or row == square_bottom then
-			lines[row] = "+" .. string.rep("-", square_right - square_left - 1) .. "+"
-		elseif row > square_top and row < square_bottom then
-			lines[row] = "|" .. string.rep(" ", square_right - square_left - 1) .. "|"
+	-- Add the explanation at the top
+	lines[#lines + 1] = "Welcome to the G Deletion Game!"
+	lines[#lines + 1] = "Objective: Delete 15 'G's by pressing 'x'."
+	lines[#lines + 1] = ""
+	lines[#lines + 1] = ""
+
+	-- Calculate the total number of lines in the window
+	local total_rows = vim.api.nvim_win_get_height(game_win)
+
+	-- Calculate the vertical space available after the explanation
+	local available_rows = total_rows - #lines
+
+	-- Calculate the square dimensions
+	local square_height = math.min(10, available_rows - 2) -- Leave at least 1 line padding
+	local square_width = vim.api.nvim_win_get_width(game_win) - 8 -- Adjust for left/right padding
+
+	-- Calculate vertical padding to center the square
+	local vertical_padding = math.floor((available_rows - square_height) / 2)
+	for _ = 1, vertical_padding do
+		lines[#lines + 1] = ""
+	end
+
+	-- Calculate horizontal padding to center the square
+	local horizontal_padding = math.floor((vim.api.nvim_win_get_width(game_win) - square_width) / 2)
+	local left_padding = string.rep(" ", horizontal_padding)
+
+	-- Draw the square
+	for i = 1, square_height do
+		local line = ""
+		if i == 1 or i == square_height then
+			-- Top or bottom edge of the square
+			line = left_padding .. "+" .. string.rep("-", square_width - 2) .. "+"
 		else
-			lines[row] = ""
+			-- Middle rows of the square
+			line = left_padding .. "|" .. string.rep(" ", square_width - 2) .. "|"
 		end
+		lines[#lines + 1] = line
+	end
+
+	-- Fill the rest of the buffer with empty lines if needed
+	while #lines < total_rows do
+		lines[#lines + 1] = ""
 	end
 
 	-- Set the buffer lines
 	vim.api.nvim_buf_set_lines(game_buf, 0, -1, false, lines)
+
+	-- Update square boundaries based on the actual drawn square
+	square_top = #lines - available_rows + vertical_padding + 1
+	square_bottom = square_top + square_height - 1
+	square_left = horizontal_padding + 1
+	square_right = square_left + square_width - 1
 end
 
 return M
