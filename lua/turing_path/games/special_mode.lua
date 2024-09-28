@@ -3,7 +3,6 @@
 local M = {}
 
 -- Constants for the square boundaries
---
 local square_top = 4
 local square_bottom = 12
 local square_left = 3
@@ -12,7 +11,7 @@ local square_right = 36
 -- Maximum number of "G"s to be deleted before the game ends
 local max_Gs_to_delete = 15
 
--- Function to track G deletions
+-- Variable to track the number of deleted "G"s
 local deleted_G_count = 0
 
 -- Function to randomly insert a "G" inside the inner square (excluding the edges)
@@ -35,10 +34,7 @@ local function add_random_G(buf)
 end
 
 -- Function to handle 'x' keypress in normal mode
-
 function M.handle_x(buf)
-	-- Replace the character under the cursor with a space
-
 	-- Get current cursor position
 	local row, col = unpack(vim.api.nvim_win_get_cursor(0))
 	-- Neovim uses 1-based indexing for rows and 0-based indexing for columns
@@ -49,9 +45,30 @@ function M.handle_x(buf)
 	-- Get the current line
 	local line = vim.api.nvim_buf_get_lines(buf, row - 1, row, false)[1]
 
-	-- Replace the character at the cursor with a space
-	local new_line = line:sub(1, char_index - 1) .. " " .. line:sub(char_index + 1)
-	vim.api.nvim_buf_set_lines(buf, row - 1, row, false, { new_line })
+	-- Get the character under the cursor
+	local char_under_cursor = line:sub(char_index, char_index)
+
+	if char_under_cursor == "G" then
+		-- Replace the character at the cursor with a space
+		local new_line = line:sub(1, char_index - 1) .. " " .. line:sub(char_index + 1)
+		vim.api.nvim_buf_set_lines(buf, row - 1, row, false, { new_line })
+
+		-- Increment deleted_G_count
+		deleted_G_count = deleted_G_count + 1
+
+		-- Check if the game has ended
+		if deleted_G_count >= max_Gs_to_delete then
+			-- Unmap the 'x' key
+			vim.api.nvim_buf_del_keymap(buf, "n", "x")
+			vim.notify("Congratulations! You have deleted all Gs!", vim.log.levels.INFO)
+		else
+			-- Respawn a "G" at a random position
+			add_random_G(buf)
+		end
+	else
+		-- If not "G", do nothing or handle accordingly
+		vim.notify("You can only delete 'G's!", vim.log.levels.WARN)
+	end
 end
 
 -- Function to start the special game mode for Game 0
